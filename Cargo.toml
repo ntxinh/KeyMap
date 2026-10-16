@@ -1,0 +1,15 @@
+[package]
+name = "keymap"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+relm4 = "0.9"
+relm4-components = "0.9"
+kdl = "6"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+notify-debouncer-full = "0.5"
+
+[dev-dependencies]
+tempfile = "3"
