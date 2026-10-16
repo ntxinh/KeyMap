@@ -5,5 +5,6 @@ mod conflict;
 mod model;
 mod normalize;
 mod parsers;
+mod report;
 
 fn main() {}
