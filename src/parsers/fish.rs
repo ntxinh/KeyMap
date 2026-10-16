@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::path::Path;
 use std::process::Command;
 
-use crate::model::{Binding, Context, KeyCombo, Mods, Source};
+use crate::model::{Binding, Context, KeyCombo, Source};
 use crate::normalize::parse_fish_key;
 
 /// Snapshot of `fish -c bind` on this machine; used when the binary is
@@ -11,20 +11,17 @@ const FISH_DEFAULTS: &str = include_str!("fish_defaults.txt");
 
 /// Parse user `bind` statements from fish config text. Comments,
 /// non-`bind` lines, `bind --erase`, and keyless `bind` calls are skipped.
-/// All binds are `Source::Fish` / `Context::Shell`.
+/// All binds are `Source::Fish` / `Context::Shell`, `is_default` derived
+/// from the line's own flags (normally false).
 pub fn parse_bind_statements(text: &str, origin: &Path) -> Vec<Binding> {
-    text.lines().filter_map(|l| bind_line(l, origin, false)).collect()
+    text.lines().filter_map(|l| bind_line(l, origin)).collect()
 }
 
-/// Parse `fish -c bind` output (`bind --preset ...` rows). Rows are
-/// `is_default` per the `--preset` flag; origin is the pseudo-path
-/// "<fish -c bind>".
+/// Parse `fish -c bind` output. `fish -c` sources user config, so output
+/// mixes `bind --preset ...` defaults with bare `bind key action` user
+/// rows — `is_default` is derived from each row's own flags.
 pub fn parse_preset_lines(text: &str) -> Vec<Binding> {
-    preset_lines(text, Path::new("<fish -c bind>"))
-}
-
-fn preset_lines(text: &str, origin: &Path) -> Vec<Binding> {
-    text.lines().filter_map(|l| bind_line(l, origin, true)).collect()
+    text.lines().filter_map(|l| bind_line(l, Path::new("<fish -c bind>"))).collect()
 }
 
 /// `fish -c bind` output lines; empty on spawn failure, non-zero exit, or
@@ -46,20 +43,20 @@ pub fn list_bind_binary() -> Vec<String> {
 pub fn fish_defaults(origin: &Path) -> Vec<Binding> {
     let lines = list_bind_binary();
     let text = if lines.is_empty() { FISH_DEFAULTS.to_string() } else { lines.join("\n") };
-    preset_lines(&text, origin)
+    text.lines().filter_map(|l| bind_line(l, origin)).collect()
 }
 
 /// One `bind` line. Grammar: `bind [-M mode] [-k] [--preset|--user]
-/// <key...> [action...]`. Past the first key token, more tokens join the
-/// sequence only while key-shaped (single char, modifier- or
-/// escape-prefixed) — fish reads SEQUENCE as one token, but multi-token
-/// forms appear in the wild and command verbs ("up-line", "self-insert")
-/// never look key-shaped.
-fn bind_line(line: &str, origin: &Path, mut is_default: bool) -> Option<Binding> {
+/// <key> [action...]` — fish reads SEQUENCE as a single token (commas or
+/// concatenated escapes chain into `combo.sequence`), so everything after
+/// the key token is the action. `bind a b cmd` means seq `a`, action
+/// `b cmd`.
+fn bind_line(line: &str, origin: &Path) -> Option<Binding> {
     let toks = tokens(line);
     if toks.first().map(String::as_str) != Some("bind") {
         return None;
     }
+    let mut is_default = false;
     let mut i = 1;
     while let Some(t) = toks.get(i) {
         match t.as_str() {
@@ -83,35 +80,51 @@ fn bind_line(line: &str, origin: &Path, mut is_default: bool) -> Option<Binding>
             _ => break,
         }
     }
-    let mut keys: Vec<(KeyCombo, &str)> = Vec::new();
-    while let Some(t) = toks.get(i) {
-        let Some(c) = parse_fish_key(&fish_unescape(t)) else { break };
-        let shaped = c.mods != Mods::NONE || t.chars().count() == 1 || t.starts_with('\\');
-        if !keys.is_empty() && !shaped {
-            break;
-        }
-        keys.push((c, t));
-        i += 1;
-    }
-    if keys.is_empty() {
-        return None;
-    }
-    let raw = keys.iter().map(|(_, t)| *t).collect::<Vec<_>>().join(" ");
-    let mut iter = keys.into_iter().map(|(c, _)| c);
-    let mut combo = iter.next().unwrap();
-    for next in iter {
-        push_sequence(&mut combo, next);
-    }
+    let key_tok = toks.get(i)?;
+    let combo = fish_combo(key_tok)?;
     Some(Binding {
         combo,
-        raw,
-        action: toks[i..].join(" "),
+        raw: key_tok.clone(),
+        action: toks[i + 1..].join(" "),
         description: None,
         source: Source::Fish,
         origin: origin.to_path_buf(),
         is_default,
         context: Context::Shell,
     })
+}
+
+/// One SEQUENCE token → chained combo. Comma-joined (`ctrl-x,ctrl-y`) and
+/// concatenated-escape (`\cx\cy`) forms split into per-key segments, each
+/// normalized via `parse_fish_key`; a bare single key yields no sequence.
+fn fish_combo(token: &str) -> Option<KeyCombo> {
+    let combos: Option<Vec<KeyCombo>> = token
+        .split(',')
+        .filter(|p| !p.is_empty())
+        .flat_map(key_segments)
+        .map(|s| parse_fish_key(&fish_unescape(s)))
+        .collect();
+    let mut it = combos?.into_iter();
+    let mut head = it.next()?;
+    for next in it {
+        push_sequence(&mut head, next);
+    }
+    Some(head)
+}
+
+/// Split one comma-separated part at each `\` after position 0:
+/// `\cx\cy` → ["\cx", "\cy"], `\e\[A` → ["\e", "\[A"].
+fn key_segments(part: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut start = 0;
+    for (idx, ch) in part.char_indices().skip(1) {
+        if ch == '\\' {
+            out.push(&part[start..idx]);
+            start = idx;
+        }
+    }
+    out.push(&part[start..]);
+    out
 }
 
 fn push_sequence(head: &mut KeyCombo, next: KeyCombo) {
@@ -226,16 +239,56 @@ mod tests {
     }
 
     #[test]
-    fn multi_key_sequence() {
+    fn bind_output_mixes_preset_and_user_rows() {
+        // `fish -c bind` sources user config: bare rows (no --preset) are
+        // user binds and must not be labeled defaults.
+        let b = parse_preset_lines(
+            "bind ctrl-g 'git status'\nbind --preset ctrl-c cancel-commandline\n",
+        );
+        assert_eq!(b.len(), 2);
+        assert!(!b[0].is_default);
+        assert!(b[1].is_default);
+    }
+
+    #[test]
+    fn single_token_is_key_rest_is_action() {
+        // fish SEQUENCE is one token: `bind a b cmd` → seq `a`, action `b cmd`.
+        let b = parse_bind_statements("bind a b cmd\n", Path::new("x.fish"));
+        assert_eq!(b[0].combo.key, "a");
+        assert!(b[0].combo.sequence.is_none());
+        assert_eq!(b[0].action, "b cmd");
+    }
+
+    #[test]
+    fn comma_sequence_chains() {
+        let b = parse_bind_statements("bind ctrl-x,ctrl-y foo\n", Path::new("x.fish"));
+        let seq = b[0].combo.sequence.as_ref().unwrap();
+        assert_eq!(b[0].combo.key, "x");
+        assert!(b[0].combo.mods.contains(Mods::CTRL));
+        assert_eq!(seq.key, "y");
+        assert!(seq.mods.contains(Mods::CTRL));
+        assert_eq!(b[0].action, "foo");
+    }
+
+    #[test]
+    fn concatenated_escapes_chain() {
+        let b = parse_bind_statements("bind \\cx\\cy foo\n", Path::new("x.fish"));
+        let seq = b[0].combo.sequence.as_ref().unwrap();
+        assert_eq!(b[0].combo.key, "x");
+        assert!(b[0].combo.mods.contains(Mods::CTRL));
+        assert_eq!(seq.key, "y");
+        assert!(seq.mods.contains(Mods::CTRL));
+        assert_eq!(b[0].action, "foo");
+    }
+
+    #[test]
+    fn flag_options_skip() {
         let b = parse_bind_statements(
-            "bind ctrl-x b foo\nbind -M insert -k enter accept\n",
+            "bind -M insert -k enter accept\n",
             Path::new("x.fish"),
         );
-        let seq = b[0].combo.sequence.as_ref().unwrap();
-        assert_eq!(seq.key, "b");
-        assert_eq!(b[0].action, "foo");
-        assert_eq!(b[1].combo.key, "enter");
-        assert_eq!(b[1].action, "accept");
+        assert_eq!(b[0].combo.key, "enter");
+        assert_eq!(b[0].action, "accept");
     }
 
     #[test]
