@@ -15,9 +15,11 @@ struct AppFile {
 
 #[derive(Deserialize)]
 struct AppBinding {
-    combo: String,
-    action: String,
-    description: Option<String>,
+    /* `toml::Value` (not Option<String>) so a missing *or* wrong-typed
+       field skips this one entry instead of failing the whole file. */
+    combo: Option<toml::Value>,
+    action: Option<toml::Value>,
+    description: Option<toml::Value>,
 }
 
 /// Parse a `~/.config/keymap/apps/*.toml` file. Malformed input yields an
@@ -38,11 +40,13 @@ pub fn parse_app_toml(text: &str, origin: &Path) -> Vec<Binding> {
     file.binding
         .into_iter()
         .filter_map(|b| {
+            let combo_raw = b.combo.as_ref()?.as_str()?;
+            let action = b.action.as_ref()?.as_str()?;
             Some(Binding {
-                combo: parse_custom_combo(&b.combo)?,
-                raw: b.combo,
-                action: b.action,
-                description: b.description,
+                combo: parse_custom_combo(combo_raw)?,
+                raw: combo_raw.to_string(),
+                action: action.to_string(),
+                description: b.description.and_then(|v| v.as_str().map(str::to_string)),
                 source: source.clone(),
                 origin: origin.to_path_buf(),
                 is_default: false,
@@ -102,6 +106,28 @@ action = "Quit"
         let bs = parse_app_toml(text, Path::new("app.toml"));
         assert_eq!(bs.len(), 1);
         assert_eq!(bs[0].action, "Quit");
+    }
+
+    #[test]
+    fn bad_fields_skip_entry_not_file() {
+        /* Missing `action`, wrong-typed `combo`, and wrong-typed
+           `description` each kill only their own entry. */
+        let text = r#"
+name = "App"
+[[binding]]
+combo = "ctrl+a"
+[[binding]]
+combo = 5
+action = "Bad"
+[[binding]]
+combo = "alt+f4"
+action = "Quit"
+description = 7
+"#;
+        let bs = parse_app_toml(text, Path::new("app.toml"));
+        assert_eq!(bs.len(), 1);
+        assert_eq!(bs[0].action, "Quit");
+        assert_eq!(bs[0].description, None);
     }
 
     #[test]
