@@ -53,40 +53,22 @@ fn esc(s: &str) -> String {
 
 fn source_key(s: &Source) -> (u8, String) {
     match s {
-        Source::Niri => (0, String::new()),
-        Source::Dms => (1, String::new()),
-        Source::Ghostty => (2, String::new()),
-        Source::Fish => (3, String::new()),
-        Source::Custom(name) => (4, name.to_lowercase()),
+        // custom sources sort alphabetically among themselves
+        Source::Custom(name) => (s.rank(), name.to_lowercase()),
+        s => (s.rank(), String::new()),
     }
 }
 
 fn source_label(s: &Source) -> &str {
-    match s {
-        Source::Niri => "Niri",
-        Source::Dms => "Dms",
-        Source::Ghostty => "Ghostty",
-        Source::Fish => "Fish",
-        Source::Custom(name) => name,
-    }
+    s.label()
 }
 
 fn context_rank(c: &Context) -> u8 {
-    match c {
-        Context::Global => 0,
-        Context::Terminal => 1,
-        Context::Shell => 2,
-        Context::App => 3,
-    }
+    c.rank()
 }
 
 fn context_label(c: &Context) -> &'static str {
-    match c {
-        Context::Global => "Global",
-        Context::Terminal => "Terminal",
-        Context::Shell => "Shell",
-        Context::App => "App",
-    }
+    c.label()
 }
 
 /// UTC date without a date crate (Hinnant's civil-from-days).

@@ -47,9 +47,56 @@ pub struct Binding {
     pub action: String,
     pub description: Option<String>,
     pub source: Source,
+    /// Written by parsers for provenance; read only by tests today.
+    #[allow(dead_code)]
     pub origin: PathBuf,
     pub is_default: bool,
     pub context: Context,
+}
+
+impl Source {
+    /// Display label; custom sources use their app name.
+    pub fn label(&self) -> &str {
+        match self {
+            Source::Niri => "Niri",
+            Source::Dms => "Dms",
+            Source::Ghostty => "Ghostty",
+            Source::Fish => "Fish",
+            Source::Custom(name) => name,
+        }
+    }
+
+    /// Stable ordering rank: Niri, Dms, Ghostty, Fish, then Custom.
+    pub fn rank(&self) -> u8 {
+        match self {
+            Source::Niri => 0,
+            Source::Dms => 1,
+            Source::Ghostty => 2,
+            Source::Fish => 3,
+            Source::Custom(_) => 4,
+        }
+    }
+}
+
+impl Context {
+    pub fn label(&self) -> &'static str {
+        match self {
+            Context::Global => "Global",
+            Context::Terminal => "Terminal",
+            Context::Shell => "Shell",
+            Context::App => "App",
+        }
+    }
+
+    /// Display ordering rank (Global first).
+    pub fn rank(&self) -> u8 {
+        match self {
+            Context::Global => 0,
+            Context::Terminal => 1,
+            Context::Shell => 2,
+            Context::App => 3,
+        }
+    }
 }
 
 impl Binding {

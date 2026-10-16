@@ -7,6 +7,7 @@ use crate::normalize::parse_niri_combo;
 
 /// niri `mod-key` setting (child of `input`, or of `input > keyboard` per the
 /// brief); defaults to `"Super"`. Parse failures return the default.
+#[cfg(test)] // test-only helper exercising the mod-key defaults logic
 pub fn read_mod_key(text: &str) -> String {
     parse_doc(text).map(|d| mod_key_of(&d)).unwrap_or_else(|| "Super".into())
 }

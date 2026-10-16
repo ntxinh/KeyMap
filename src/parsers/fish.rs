@@ -20,6 +20,7 @@ pub fn parse_bind_statements(text: &str, origin: &Path) -> Vec<Binding> {
 /// Parse `fish -c bind` output. `fish -c` sources user config, so output
 /// mixes `bind --preset ...` defaults with bare `bind key action` user
 /// rows — `is_default` is derived from each row's own flags.
+#[cfg(test)] // used only by parser tests
 pub fn parse_preset_lines(text: &str) -> Vec<Binding> {
     text.lines().filter_map(|l| bind_line(l, Path::new("<fish -c bind>"))).collect()
 }

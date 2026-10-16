@@ -1,12 +1,15 @@
-// ponytail: foundation modules are consumed by later tasks; silence dead_code until wired up
-#![allow(dead_code)]
-
 mod conflict;
 mod load;
 mod model;
 mod normalize;
 mod parsers;
 mod report;
+mod ui;
 mod watch;
 
-fn main() {}
+use relm4::RelmApp;
+
+fn main() {
+    let app = RelmApp::new("com.github.keymap");
+    app.run::<ui::App>(());
+}
