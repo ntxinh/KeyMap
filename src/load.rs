@@ -28,7 +28,9 @@ pub fn load_all() -> Vec<Binding> {
 fn real_paths() -> ConfigPaths {
     let home = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".config"));
+        .unwrap_or_else(|| {
+            PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".config")
+        });
     ConfigPaths {
         niri_config: home.join("niri/config.kdl"),
         niri_dms_dir: home.join("niri/dms"),
@@ -44,7 +46,12 @@ pub fn load_from(paths: &ConfigPaths) -> Vec<Binding> {
     let mut out = Vec::new();
 
     if let Some(text) = read(&paths.niri_config) {
-        out.extend(niri::parse_niri_kdl(&text, Source::Niri, &paths.niri_config, false));
+        out.extend(niri::parse_niri_kdl(
+            &text,
+            Source::Niri,
+            &paths.niri_config,
+            false,
+        ));
     }
     for file in glob(&paths.niri_dms_dir, "kdl") {
         if let Some(text) = read(&file) {
@@ -123,7 +130,11 @@ mod tests {
             "input { keyboard { xkb { layout \"us\"; } } }\nbinds {\nMod+T { spawn \"kitty\"; }\n}\n",
         );
         let dms_dir = root.join("niri/dms");
-        write(&dms_dir, "dms.kdl", "binds {\nMod+D { spawn \"dms\"; }\n}\n");
+        write(
+            &dms_dir,
+            "dms.kdl",
+            "binds {\nMod+D { spawn \"dms\"; }\n}\n",
+        );
         let ghostty_config = write(
             &root.join("ghostty"),
             "config",
@@ -186,6 +197,7 @@ mod tests {
         };
         let bindings = load_from(&paths);
         assert!(!bindings.is_empty());
-        assert!(bindings.iter().all(|b| b.is_default));
+        // Nothing was read from the (empty) fixture root — only defaults.
+        assert!(bindings.iter().all(|b| !b.origin.starts_with(root)));
     }
 }

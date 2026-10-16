@@ -22,15 +22,21 @@ pub enum WatchMsg {
 pub fn spawn_watcher(
     send: relm4::Sender<WatchMsg>,
 ) -> notify_debouncer_full::notify::Result<Debouncer<RecommendedWatcher, RecommendedCache>> {
-    let mut debouncer = new_debouncer(Duration::from_millis(500), None, move |result: notify_debouncer_full::DebounceEventResult| {
-        if result.is_ok() {
-            send.emit(WatchMsg::Reload);
-        }
-    })?;
+    let mut debouncer = new_debouncer(
+        Duration::from_millis(500),
+        None,
+        move |result: notify_debouncer_full::DebounceEventResult| {
+            if result.is_ok() {
+                send.emit(WatchMsg::Reload);
+            }
+        },
+    )?;
 
     let home = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".config"));
+        .unwrap_or_else(|| {
+            PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".config")
+        });
     for dir in ["niri", "fish", "ghostty", "DankMaterialShell", "keymap"] {
         let path = home.join(dir);
         if path.is_dir() {

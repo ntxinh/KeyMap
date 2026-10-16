@@ -32,7 +32,6 @@ fn chip_of(source: &Source) -> Chip {
     }
 }
 
-
 /// List item: a context group header or one binding row.
 #[derive(Debug)]
 pub enum Row {
@@ -166,10 +165,12 @@ pub struct App {
     hide_defaults: bool,
     rows: FactoryVecDeque<Row>,
     // The debouncer must outlive init for watches to stay live.
-    _watcher: Option<notify_debouncer_full::Debouncer<
-        notify_debouncer_full::notify::RecommendedWatcher,
-        notify_debouncer_full::RecommendedCache,
-    >>,
+    _watcher: Option<
+        notify_debouncer_full::Debouncer<
+            notify_debouncer_full::notify::RecommendedWatcher,
+            notify_debouncer_full::RecommendedCache,
+        >,
+    >,
 }
 
 impl App {
@@ -193,8 +194,11 @@ impl App {
             })
             .collect();
         filtered.sort_by(|a, b| {
-            (a.context.rank(), a.source.rank(), a.sort_key())
-                .cmp(&(b.context.rank(), b.source.rank(), b.sort_key()))
+            (a.context.rank(), a.source.rank(), a.sort_key()).cmp(&(
+                b.context.rank(),
+                b.source.rank(),
+                b.sort_key(),
+            ))
         });
 
         let mut guard = self.rows.guard();
@@ -240,7 +244,11 @@ impl App {
                 .iter()
                 .map(|b| format!("{} — {}", b.source.label(), b.action))
                 .collect();
-            out.push_str(&format!("• {}  ({kind})\n    {}\n", c.combo, claimants.join("\n    ")));
+            out.push_str(&format!(
+                "• {}  ({kind})\n    {}\n",
+                c.combo,
+                claimants.join("\n    ")
+            ));
         }
         out
     }
@@ -365,9 +373,7 @@ impl SimpleComponent for App {
         root: Self::Root,
         sender: ComponentSender<Self>,
     ) -> ComponentParts<Self> {
-        let rows = FactoryVecDeque::builder()
-            .launch_default()
-            .detach();
+        let rows = FactoryVecDeque::builder().launch_default().detach();
 
         let mut model = App {
             all: load_all(),
@@ -418,7 +424,7 @@ impl SimpleComponent for App {
             Msg::ShowConflicts => {
                 let dialog = adw::AlertDialog::builder()
                     .heading("Conflicts")
-                    .body(&self.conflicts_text())
+                    .body(self.conflicts_text())
                     .build();
                 dialog.add_response("close", "Close");
                 dialog.set_default_response(Some("close"));
@@ -441,7 +447,10 @@ impl SimpleComponent for App {
                 });
             }
             Msg::CopyCheatsheet => {
-                self.rows.widget().clipboard().set_text(&render_markdown(&self.all));
+                self.rows
+                    .widget()
+                    .clipboard()
+                    .set_text(&render_markdown(&self.all));
             }
         }
     }

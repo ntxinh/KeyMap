@@ -69,7 +69,11 @@ mod tests {
 
     fn binding(source: Source, mods: Mods, key: &str, seq: Option<KeyCombo>) -> Binding {
         Binding {
-            combo: KeyCombo { mods, key: key.into(), sequence: seq.map(Box::new) },
+            combo: KeyCombo {
+                mods,
+                key: key.into(),
+                sequence: seq.map(Box::new),
+            },
             raw: String::new(),
             action: "act".into(),
             description: None,
@@ -81,7 +85,11 @@ mod tests {
     }
 
     fn fish_seq() -> KeyCombo {
-        KeyCombo { mods: Mods::NONE, key: "b".into(), sequence: None }
+        KeyCombo {
+            mods: Mods::NONE,
+            key: "b".into(),
+            sequence: None,
+        }
     }
 
     #[test]
@@ -121,7 +129,11 @@ mod tests {
     #[test]
     fn fish_sequences_same_head_different_tails_not_exact() {
         let tail_b = fish_seq();
-        let tail_c = KeyCombo { mods: Mods::NONE, key: "c".into(), sequence: None };
+        let tail_c = KeyCombo {
+            mods: Mods::NONE,
+            key: "c".into(),
+            sequence: None,
+        };
         let bs = vec![
             binding(Source::Fish, Mods::CTRL, "x", Some(tail_b)),
             binding(Source::Fish, Mods::CTRL, "x", Some(tail_c)),

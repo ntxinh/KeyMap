@@ -9,7 +9,9 @@ use crate::normalize::parse_niri_combo;
 /// brief); defaults to `"Super"`. Parse failures return the default.
 #[cfg(test)] // test-only helper exercising the mod-key defaults logic
 pub fn read_mod_key(text: &str) -> String {
-    parse_doc(text).map(|d| mod_key_of(&d)).unwrap_or_else(|| "Super".into())
+    parse_doc(text)
+        .map(|d| mod_key_of(&d))
+        .unwrap_or_else(|| "Super".into())
 }
 
 fn mod_key_of(doc: &KdlDocument) -> String {
@@ -203,7 +205,10 @@ fn fix_terminators(text: &str) -> String {
                     i += 1;
                 }
                 // terminate this node unless already followed by one
-                if !matches!(b.get(i), None | Some(b';') | Some(b'\n') | Some(b'\r') | Some(b'/')) {
+                if !matches!(
+                    b.get(i),
+                    None | Some(b';') | Some(b'\n') | Some(b'\r') | Some(b'/')
+                ) {
                     out.push(b';');
                 }
             }
@@ -218,7 +223,10 @@ fn fix_terminators(text: &str) -> String {
 
 /// Last significant byte emitted (skipping trailing spaces/tabs).
 fn prev_sig(out: &[u8]) -> Option<u8> {
-    out.iter().rev().find(|&&c| c != b' ' && c != b'\t').copied()
+    out.iter()
+        .rev()
+        .find(|&&c| c != b' ' && c != b'\t')
+        .copied()
 }
 
 #[cfg(test)]
@@ -241,10 +249,15 @@ binds {
         assert_eq!(b.len(), 3);
         let term = &b[0];
         assert_eq!(term.action, "spawn ghostty");
-        assert_eq!(term.description.as_deref(), Some("Open a Terminal: ghostty"));
+        assert_eq!(
+            term.description.as_deref(),
+            Some("Open a Terminal: ghostty")
+        );
         assert_eq!(b[1].action, "close-window");
         assert_eq!(b[2].action, "spawn-sh swaylock");
-        assert!(b.iter().all(|x| x.context == Context::Global && !x.is_default));
+        assert!(b
+            .iter()
+            .all(|x| x.context == Context::Global && !x.is_default));
     }
 
     const ALT_FIXTURE: &str = r#"

@@ -19,8 +19,8 @@ impl Mods {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct KeyCombo {
     pub mods: Mods,
-    pub key: String,                            /* normalized lowercase */
-    pub sequence: Option<Box<KeyCombo>>,        /* fish multi-key only */
+    pub key: String,                     /* normalized lowercase */
+    pub sequence: Option<Box<KeyCombo>>, /* fish multi-key only */
 }
 
 #[derive(Debug, Clone, PartialEq)]

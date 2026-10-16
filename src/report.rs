@@ -98,7 +98,11 @@ mod tests {
 
     fn binding(source: Source, mods: Mods, key: &str, action: &str, ctx: Context) -> Binding {
         Binding {
-            combo: KeyCombo { mods, key: key.into(), sequence: None },
+            combo: KeyCombo {
+                mods,
+                key: key.into(),
+                sequence: None,
+            },
             raw: String::new(),
             action: action.into(),
             description: None,
@@ -136,8 +140,20 @@ mod tests {
 
     #[test]
     fn custom_sources_sorted_alphabetically_last() {
-        let zeta = binding(Source::Custom("Zeta".into()), Mods::NONE, "z", "z", Context::App);
-        let alpha = binding(Source::Custom("alpha".into()), Mods::NONE, "a", "a", Context::App);
+        let zeta = binding(
+            Source::Custom("Zeta".into()),
+            Mods::NONE,
+            "z",
+            "z",
+            Context::App,
+        );
+        let alpha = binding(
+            Source::Custom("alpha".into()),
+            Mods::NONE,
+            "a",
+            "a",
+            Context::App,
+        );
         let ghostty = binding(Source::Ghostty, Mods::CTRL, "c", "copy", Context::Terminal);
         let out = render_markdown(&[zeta, alpha, ghostty]);
 
@@ -165,7 +181,13 @@ mod tests {
 
     #[test]
     fn missing_description_uses_placeholder() {
-        let b = binding(Source::Niri, Mods::SUPER, "t", "spawn term", Context::Global);
+        let b = binding(
+            Source::Niri,
+            Mods::SUPER,
+            "t",
+            "spawn term",
+            Context::Global,
+        );
         let out = render_markdown(&[b]);
         assert!(out.contains("| Super+t | spawn term | — |"), "{out}");
     }

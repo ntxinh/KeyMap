@@ -16,7 +16,7 @@ struct AppFile {
 #[derive(Deserialize)]
 struct AppBinding {
     /* `toml::Value` (not Option<String>) so a missing *or* wrong-typed
-       field skips this one entry instead of failing the whole file. */
+    field skips this one entry instead of failing the whole file. */
     combo: Option<toml::Value>,
     action: Option<toml::Value>,
     description: Option<toml::Value>,
@@ -111,7 +111,7 @@ action = "Quit"
     #[test]
     fn bad_fields_skip_entry_not_file() {
         /* Missing `action`, wrong-typed `combo`, and wrong-typed
-           `description` each kill only their own entry. */
+        `description` each kill only their own entry. */
         let text = r#"
 name = "App"
 [[binding]]

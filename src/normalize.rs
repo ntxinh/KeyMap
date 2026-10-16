@@ -60,10 +60,9 @@ pub fn parse_niri_combo(s: &str, mod_key: &str) -> Option<KeyCombo> {
 /// ghostty/custom: "ctrl+shift+x", `+`-separated, all but last are mods.
 /// A trailing '+' token is a literal "+" key: "ctrl++" → Ctrl+"+".
 pub fn parse_ghostty_combo(s: &str) -> Option<KeyCombo> {
-    if s.ends_with('+') {
+    if let Some(minus_last) = s.strip_suffix('+') {
         // Last '+' is the key; an adjacent '+' before it is the separator.
-        let mods_part = &s[..s.len() - 1];
-        let mods_part = mods_part.strip_suffix('+').unwrap_or(mods_part);
+        let mods_part = minus_last.strip_suffix('+').unwrap_or(minus_last);
         let mut mods = Mods::NONE;
         if !mods_part.is_empty() {
             for p in mods_part.split('+') {

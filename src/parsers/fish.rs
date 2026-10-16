@@ -22,7 +22,9 @@ pub fn parse_bind_statements(text: &str, origin: &Path) -> Vec<Binding> {
 /// rows — `is_default` is derived from each row's own flags.
 #[cfg(test)] // used only by parser tests
 pub fn parse_preset_lines(text: &str) -> Vec<Binding> {
-    text.lines().filter_map(|l| bind_line(l, Path::new("<fish -c bind>"))).collect()
+    text.lines()
+        .filter_map(|l| bind_line(l, Path::new("<fish -c bind>")))
+        .collect()
 }
 
 /// `fish -c bind` output lines; empty on spawn failure, non-zero exit, or
@@ -43,7 +45,11 @@ pub fn list_bind_binary() -> Vec<String> {
 /// embedded snapshot.
 pub fn fish_defaults(origin: &Path) -> Vec<Binding> {
     let lines = list_bind_binary();
-    let text = if lines.is_empty() { FISH_DEFAULTS.to_string() } else { lines.join("\n") };
+    let text = if lines.is_empty() {
+        FISH_DEFAULTS.to_string()
+    } else {
+        lines.join("\n")
+    };
     text.lines().filter_map(|l| bind_line(l, origin)).collect()
 }
 
@@ -284,10 +290,7 @@ mod tests {
 
     #[test]
     fn flag_options_skip() {
-        let b = parse_bind_statements(
-            "bind -M insert -k enter accept\n",
-            Path::new("x.fish"),
-        );
+        let b = parse_bind_statements("bind -M insert -k enter accept\n", Path::new("x.fish"));
         assert_eq!(b[0].combo.key, "enter");
         assert_eq!(b[0].action, "accept");
     }
@@ -296,14 +299,11 @@ mod tests {
     fn snapshot_parses() {
         let b = parse_preset_lines(FISH_DEFAULTS);
         assert!(b.len() >= 20);
-        assert!(
-            b.iter()
-                .all(|x| x.is_default && x.context == Context::Shell && x.source == Source::Fish)
-        );
         assert!(b
             .iter()
-            .any(|x| x.combo.key == "c"
-                && x.combo.mods.contains(Mods::CTRL)
-                && x.action == "cancel-commandline"));
+            .all(|x| x.is_default && x.context == Context::Shell && x.source == Source::Fish));
+        assert!(b.iter().any(|x| x.combo.key == "c"
+            && x.combo.mods.contains(Mods::CTRL)
+            && x.action == "cancel-commandline"));
     }
 }

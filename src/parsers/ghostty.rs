@@ -18,7 +18,9 @@ pub fn parse_ghostty_lines(
     origin: &Path,
     is_default: bool,
 ) -> Vec<Binding> {
-    text.lines().filter_map(|l| bind_line(l, &source, origin, is_default)).collect()
+    text.lines()
+        .filter_map(|l| bind_line(l, &source, origin, is_default))
+        .collect()
 }
 
 fn bind_line(line: &str, source: &Source, origin: &Path, is_default: bool) -> Option<Binding> {
@@ -65,7 +67,11 @@ pub fn list_keybinds_binary() -> Vec<String> {
 /// embedded snapshot.
 pub fn ghostty_defaults(origin: &Path) -> Vec<Binding> {
     let lines = list_keybinds_binary();
-    let text = if lines.is_empty() { GHOSTTY_DEFAULTS.to_string() } else { lines.join("\n") };
+    let text = if lines.is_empty() {
+        GHOSTTY_DEFAULTS.to_string()
+    } else {
+        lines.join("\n")
+    };
     parse_ghostty_lines(&text, Source::Ghostty, origin, true)
 }
 
@@ -98,11 +104,22 @@ mod tests {
 
     #[test]
     fn snapshot_parses() {
-        let b = parse_ghostty_lines(GHOSTTY_DEFAULTS, Source::Ghostty, Path::new("defaults"), true);
+        let b = parse_ghostty_lines(
+            GHOSTTY_DEFAULTS,
+            Source::Ghostty,
+            Path::new("defaults"),
+            true,
+        );
         assert!(b.len() > 50);
-        assert!(b.iter().all(|x| x.is_default && x.context == Context::Terminal));
+        assert!(b
+            .iter()
+            .all(|x| x.is_default && x.context == Context::Terminal));
         // The two previously-dropped literal-key defaults now parse.
-        assert!(b.iter().any(|x| x.combo.key == "=" && x.action == "increase_font_size:1"));
-        assert!(b.iter().any(|x| x.combo.key == "+" && x.action == "increase_font_size:1"));
+        assert!(b
+            .iter()
+            .any(|x| x.combo.key == "=" && x.action == "increase_font_size:1"));
+        assert!(b
+            .iter()
+            .any(|x| x.combo.key == "+" && x.action == "increase_font_size:1"));
     }
 }
