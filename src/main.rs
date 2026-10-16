@@ -3,5 +3,6 @@
 
 mod model;
 mod normalize;
+mod parsers;
 
 fn main() {}
