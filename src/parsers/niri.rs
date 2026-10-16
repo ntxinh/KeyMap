@@ -46,6 +46,15 @@ pub fn parse_niri_kdl(text: &str, source: Source, origin: &Path, is_default: boo
         .collect()
 }
 
+/// Snapshot of niri's shipped `default-config.kdl` (niri has no dump
+/// subcommand); used as the compiled-in defaults listing.
+const NIRI_DEFAULTS: &str = include_str!("niri_defaults.txt");
+
+/// niri's built-in default bindings, parsed from the embedded snapshot.
+pub fn niri_defaults(origin: &Path) -> Vec<Binding> {
+    parse_niri_kdl(NIRI_DEFAULTS, Source::Niri, origin, true)
+}
+
 fn bind_node(
     node: &KdlNode,
     mod_key: &str,
