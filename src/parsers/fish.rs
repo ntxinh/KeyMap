@@ -22,8 +22,17 @@ pub fn parse_bind_statements(text: &str, origin: &Path) -> Vec<Binding> {
 /// rows — `is_default` is derived from each row's own flags.
 #[cfg(test)] // used only by parser tests
 pub fn parse_preset_lines(text: &str) -> Vec<Binding> {
+    preset_rows(text, Path::new("<fish -c bind>"))
+}
+
+/// `--preset` rows of `fish -c bind` output. `fish -c` sources user
+/// config, so bare rows are user binds — `load_from` already parses those
+/// from the fish files; keeping them here would double-load every user
+/// bind (duplicated rows + phantom Exact conflicts).
+fn preset_rows(text: &str, origin: &Path) -> Vec<Binding> {
     text.lines()
-        .filter_map(|l| bind_line(l, Path::new("<fish -c bind>")))
+        .filter_map(|l| bind_line(l, origin))
+        .filter(|b| b.is_default)
         .collect()
 }
 
@@ -41,8 +50,9 @@ pub fn list_bind_binary() -> Vec<String> {
         .unwrap_or_default()
 }
 
-/// Default bindings: live `fish -c bind` output, falling back to the
-/// embedded snapshot.
+/// Default bindings: `--preset` rows of live `fish -c bind` output,
+/// falling back to the embedded snapshot. User rows in the live output
+/// are skipped — file parsing owns them.
 pub fn fish_defaults(origin: &Path) -> Vec<Binding> {
     let lines = list_bind_binary();
     let text = if lines.is_empty() {
@@ -50,7 +60,7 @@ pub fn fish_defaults(origin: &Path) -> Vec<Binding> {
     } else {
         lines.join("\n")
     };
-    text.lines().filter_map(|l| bind_line(l, origin)).collect()
+    preset_rows(&text, origin)
 }
 
 /// One `bind` line. Grammar: `bind [-M mode] [-k] [--preset|--user]
@@ -246,15 +256,15 @@ mod tests {
     }
 
     #[test]
-    fn bind_output_mixes_preset_and_user_rows() {
-        // `fish -c bind` sources user config: bare rows (no --preset) are
-        // user binds and must not be labeled defaults.
+    fn bind_output_keeps_only_preset_rows() {
+        // `fish -c bind` sources user config: bare rows are user binds
+        // already covered by file parsing — defaults keep only `--preset`.
         let b = parse_preset_lines(
             "bind ctrl-g 'git status'\nbind --preset ctrl-c cancel-commandline\n",
         );
-        assert_eq!(b.len(), 2);
-        assert!(!b[0].is_default);
-        assert!(b[1].is_default);
+        assert_eq!(b.len(), 1);
+        assert!(b[0].is_default);
+        assert_eq!(b[0].action, "cancel-commandline");
     }
 
     #[test]

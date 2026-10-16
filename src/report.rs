@@ -129,7 +129,7 @@ mod tests {
 
         assert!(out.starts_with("# KeyMap Cheat Sheet"));
         assert!(out.contains("| Keys | Action | Description |"));
-        assert!(out.contains("| Super+Shift+Slash | show-hotkey-overlay | Show hotkeys |"));
+        assert!(out.contains("| Shift+Super+Slash | show-hotkey-overlay | Show hotkeys |"));
         assert!(out.contains("### Global"));
         assert!(out.contains("### Shell"));
 

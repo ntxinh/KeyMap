@@ -35,11 +35,16 @@ automatically when they change.
 
 ### Defaults vs. user bindings
 
-Each source also contributes a snapshot of its **default** bindings (niri,
-ghostty, fish defaults are bundled in `src/parsers/*_defaults.txt`), shown in
-the list alongside your own. Default rows are dimmed; the *Hide defaults*
-toggle removes them entirely, so user bindings vs. defaults is always
-visible at a glance.
+Niri, ghostty, and fish also contribute a snapshot of their **default**
+bindings (bundled in `src/parsers/*_defaults.txt`), shown in the list
+alongside your own. Default rows are dimmed; the *Hide defaults* toggle
+removes them entirely, so user bindings vs. defaults is always visible
+at a glance.
+
+Modifier names are normalized across sources: `ctrl`/`control`, `alt`,
+`meta` (Alt, in fish/terminal vocab), `shift`, `super`/`cmd`, and `mod`
+(niri's configurable `mod-key`, defaulting to Super) are all accepted
+and display in canonical `Ctrl+Alt+Shift+Super` order.
 
 ## Custom app bindings
 
@@ -56,10 +61,11 @@ description = "Play/pause"   # optional
 ```
 
 Combo syntax: `+`-separated, last token is the key, earlier tokens are
-modifiers (`ctrl`/`alt`/`shift`/`super`, case-insensitive). A trailing `+`
-is a literal `+` key (`"ctrl++"` = Ctrl + `+`). Entries with a malformed
-combo or missing `combo`/`action` are skipped individually, not the file.
-Custom bindings appear under the app's name in the `App` context.
+modifiers (case-insensitive; see the alias list under Sources). A
+trailing `+` is a literal `+` key (`"ctrl++"` = Ctrl + `+`). Entries
+with a malformed combo or missing `combo`/`action` are skipped
+individually, not the file. Custom bindings appear under the app's name
+in the `App` context.
 
 ## UI
 

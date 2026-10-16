@@ -10,7 +10,7 @@ pub enum WatchMsg {
     Reload,
 }
 
-/// Watch `~/.config/{niri,fish,ghostty,DankMaterialShell,keymap}`
+/// Watch `~/.config/{niri,fish,ghostty,keymap}`
 /// recursively with a 500ms debounce; any burst emits `WatchMsg::Reload`.
 /// Returns the debouncer — the caller MUST hold it for the watch to live.
 /// (Brief asked for `RecommendedWatcher`; the `Debouncer` owns it and can't
@@ -37,7 +37,7 @@ pub fn spawn_watcher(
         .unwrap_or_else(|| {
             PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(".config")
         });
-    for dir in ["niri", "fish", "ghostty", "DankMaterialShell", "keymap"] {
+    for dir in ["niri", "fish", "ghostty", "keymap"] {
         let path = home.join(dir);
         if path.is_dir() {
             debouncer.watch(&path, RecursiveMode::Recursive)?;

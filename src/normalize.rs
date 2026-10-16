@@ -5,9 +5,9 @@ use crate::model::{KeyCombo, Mods};
 fn mod_flag(word: &str, mod_key: &str) -> Option<Mods> {
     let m = match word.to_ascii_lowercase().as_str() {
         "ctrl" | "control" => Mods::CTRL,
-        "alt" => Mods::ALT,
+        "alt" | "meta" => Mods::ALT, // fish/terminal vocab: meta is Alt
         "shift" => Mods::SHIFT,
-        "super" | "cmd" | "meta" => Mods::SUPER,
+        "super" | "cmd" => Mods::SUPER,
         "mod" => match mod_key.to_ascii_lowercase().as_str() {
             "ctrl" | "control" => Mods::CTRL,
             "alt" => Mods::ALT,
@@ -37,6 +37,10 @@ fn norm_key(s: &str) -> Option<String> {
 }
 
 fn combo(mods: Mods, key: &str) -> Option<KeyCombo> {
+    // A modifier word in key position ("ctrl", "Mod+…") has no key.
+    if mod_flag(key, "").is_some() {
+        return None;
+    }
     norm_key(key).map(|key| KeyCombo {
         mods,
         key,
@@ -107,7 +111,14 @@ mod tests {
         assert!(c.mods.contains(Mods::SUPER));
         assert!(c.mods.contains(Mods::SHIFT));
         assert_eq!(c.key, "slash");
-        assert_eq!(c.to_string(), "Super+Shift+Slash");
+        assert_eq!(c.to_string(), "Shift+Super+Slash");
+    }
+
+    #[test]
+    fn lone_modifier_is_not_a_key() {
+        assert!(parse_niri_combo("ctrl", "super").is_none());
+        assert!(parse_ghostty_combo("shift").is_none());
+        assert!(parse_fish_key("ctrl-").is_none());
     }
 
     #[test]
@@ -129,6 +140,7 @@ mod tests {
     fn fish_key() {
         assert_eq!(parse_fish_key("ctrl-c").unwrap().key, "c");
         assert!(parse_fish_key("ctrl-c").unwrap().mods.contains(Mods::CTRL));
+        assert!(parse_fish_key("meta-x").unwrap().mods.contains(Mods::ALT));
         assert_eq!(parse_fish_key("enter").unwrap().key, "enter");
     }
 }

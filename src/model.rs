@@ -111,8 +111,8 @@ impl std::fmt::Display for KeyCombo {
         for (m, name) in [
             (Mods::CTRL, "Ctrl"),
             (Mods::ALT, "Alt"),
-            (Mods::SUPER, "Super"),
             (Mods::SHIFT, "Shift"),
+            (Mods::SUPER, "Super"),
         ] {
             if self.mods.contains(m) {
                 write!(f, "{name}+")?;
