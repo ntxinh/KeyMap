@@ -58,7 +58,20 @@ pub fn parse_niri_combo(s: &str, mod_key: &str) -> Option<KeyCombo> {
 }
 
 /// ghostty/custom: "ctrl+shift+x", `+`-separated, all but last are mods.
+/// A trailing '+' token is a literal "+" key: "ctrl++" → Ctrl+"+".
 pub fn parse_ghostty_combo(s: &str) -> Option<KeyCombo> {
+    if s.ends_with('+') {
+        // Last '+' is the key; an adjacent '+' before it is the separator.
+        let mods_part = &s[..s.len() - 1];
+        let mods_part = mods_part.strip_suffix('+').unwrap_or(mods_part);
+        let mut mods = Mods::NONE;
+        if !mods_part.is_empty() {
+            for p in mods_part.split('+') {
+                mods = mods.union(mod_flag(p, "super")?);
+            }
+        }
+        return combo(mods, "+");
+    }
     parse_niri_combo(s, "super")
 }
 
@@ -104,6 +117,13 @@ mod tests {
             parse_ghostty_combo("shift+ctrl+x").unwrap(),
             parse_ghostty_combo("ctrl+shift+x").unwrap()
         );
+    }
+
+    #[test]
+    fn ghostty_trailing_plus_is_literal_key() {
+        let c = parse_ghostty_combo("ctrl++").unwrap();
+        assert_eq!(c.key, "+");
+        assert!(c.mods.contains(Mods::CTRL));
     }
 
     #[test]

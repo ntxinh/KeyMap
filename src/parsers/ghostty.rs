@@ -26,15 +26,15 @@ fn bind_line(line: &str, source: &Source, origin: &Path, is_default: bool) -> Op
     if directive.trim() != "keybind" {
         return None;
     }
-    let (combo_raw, action) = value.split_once('=')?;
+    // rsplit: the combo itself may end in '=' ("ctrl+==" = Ctrl+'='), while
+    // ghostty actions carry no '='.
+    let (combo_raw, action) = value.rsplit_once('=')?;
     let action = action.trim();
     if action.is_empty() {
         return None;
     }
     let combo_raw = combo_raw.trim();
-    let mut combo = parse_ghostty_combo(combo_raw)?;
-    // Ghostty names arrows `arrow_*`; strip to the bare form per the brief.
-    combo.key = combo.key.strip_prefix("arrow_").unwrap_or(&combo.key).to_string();
+    let combo = parse_ghostty_combo(combo_raw)?;
     Some(Binding {
         combo,
         raw: combo_raw.to_string(),
@@ -81,7 +81,19 @@ mod tests {
         assert_eq!(b.len(), 2);
         assert_eq!(b[0].action, "goto_split:down");
         assert!(b[0].combo.mods.contains(Mods::SHIFT.union(Mods::ALT)));
-        assert_eq!(b[0].combo.key, "down");
+        assert_eq!(b[0].combo.key, "arrow_down");
+    }
+
+    #[test]
+    fn equals_and_plus_keys() {
+        let text = "keybind = ctrl+==increase_font_size:1\nkeybind = ctrl++=increase_font_size:1\n";
+        let b = parse_ghostty_lines(text, Source::Ghostty, Path::new("defaults"), true);
+        assert_eq!(b.len(), 2);
+        assert_eq!(b[0].action, "increase_font_size:1");
+        assert_eq!(b[0].combo.key, "=");
+        assert!(b[0].combo.mods.contains(Mods::CTRL));
+        assert_eq!(b[1].combo.key, "+");
+        assert!(b[1].combo.mods.contains(Mods::CTRL));
     }
 
     #[test]
@@ -89,5 +101,8 @@ mod tests {
         let b = parse_ghostty_lines(GHOSTTY_DEFAULTS, Source::Ghostty, Path::new("defaults"), true);
         assert!(b.len() > 50);
         assert!(b.iter().all(|x| x.is_default && x.context == Context::Terminal));
+        // The two previously-dropped literal-key defaults now parse.
+        assert!(b.iter().any(|x| x.combo.key == "=" && x.action == "increase_font_size:1"));
+        assert!(b.iter().any(|x| x.combo.key == "+" && x.action == "increase_font_size:1"));
     }
 }
